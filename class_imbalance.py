@@ -61,13 +61,17 @@ def add_pseudo_observations(X, y, num_pseudo, weight1=0.85, weight2=0.15, class_
 # removing observations
 def remove_observations(X, y, num_rm, class_to_delete_from):
   indices_c = np.where(y == class_to_delete_from)[0]
-  for i in range(num_rm):
-    # Choose random indexes from indices_c
+  i = num_rm
+  X_rm = X
+  y_rm = y
+  while i > 0:
+  # Choose random indexes from indices_c
     id = np.random.choice(indices_c)
   # Remove the observation and corresponding label at index idx
-    X_rm = np.delete(X, id, axis=0)
-    y_rm = np.delete(y, id, axis=0)
+    X_rm = np.delete(X_rm, id, axis=0)
+    y_rm = np.delete(y_rm, id, axis=0)
     indices_c = np.where(y == class_to_delete_from)[0]
+    i-=1
   return X_rm, y_rm
 
 
@@ -76,7 +80,7 @@ n_simulations = 3
 for i in range(n_simulations):
   # Add pseudo-observations to class i
   X_pseudo, y_pseudo = add_pseudo_observations(
-      X, y, num_pseudo=50, class_to_augment=5)
+      X, y, num_pseudo=1, class_to_augment=5)
 
   #print(X.shape, y.shape)
   #print(X_pseudo.shape, y_pseudo.shape)
