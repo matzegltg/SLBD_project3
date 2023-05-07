@@ -61,6 +61,18 @@ def add_pseudo_observations(X, y, num_pseudo, weight1=0.85, weight2=0.15, class_
 # removing observations
 def remove_observations(X, y, num_rm, class_to_delete_from):
   indices_c = np.where(y == class_to_delete_from)[0]
+  concat_data = np.concatenate([X, np.expand_dims(y, axis=1)], axis=1)
+  idx_rm = list(set(range(X.shape[0])) - set(np.random.choice(indices_c, num_rm, replace=False)))
+  data_rm = concat_data[idx_rm]
+
+  y_rm = data_rm[:,-1]
+  X_rm = data_rm[:,:-1]
+  
+  return X_rm, y_rm
+  
+"""
+  def remove_observations(X, y, num_rm, class_to_delete_from):
+  indices_c = np.where(y == class_to_delete_from)[0]
   i = num_rm
   X_rm = X
   y_rm = y
@@ -73,7 +85,7 @@ def remove_observations(X, y, num_rm, class_to_delete_from):
     indices_c = np.where(y == class_to_delete_from)[0]
     i-=1
   return X_rm, y_rm
-
+"""
 
 sil_sc = {'5': 0, '6': 0, '7': 0}
 n_simulations = 3
