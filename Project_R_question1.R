@@ -33,12 +33,22 @@ princip_components <- 10
 sil_scores_kmeans <- c()
 sil_scores_kmedoids <- c()
 sil_scores_gmm <- c()
-sil_scores_completelink <- c()
+sil_scores_wardmethod <- c()
 avg_sil_scores <- c()
 
+# compute principal components
+pca <- prcomp(data_features, center = TRUE, scale = FALSE)
+
+# extract proportion of variance explained by each principal component
+prop_var <- pca$sdev^2/sum(pca$sdev^2)
+
+# plot scree plot
+plot(prop_var, type = "b", xlab = "Number of Principal Components", ylab = "Proportion of Variance Explained")
+
+reduced_data <- prcomp(data_features, center = TRUE, scale = FALSE)$x[, 1:princip_components]
+
+
 for (n_cluster in n_clusters) {
-  reduced_data <- prcomp(data_features, center = TRUE, scale = FALSE)$x[, 1:princip_components]
-  
   #K means
   kmeans_clust <- kmeans(reduced_data, n_cluster)
   kmeans_clust_labels <- kmeans_clust$cluster
@@ -65,14 +75,14 @@ for (n_cluster in n_clusters) {
   fviz_silhouette(sil_gmm, palette = "jco", ggtheme = theme_classic())
   
   #Ward method hierarchical clustering
-  completelink_clust<-agnes(reduced_data,  metric = "euclidean",
+  wardmethod_clust<-agnes(reduced_data,  metric = "euclidean",
                     stand = FALSE, method = "ward", keep.data = FALSE)
-  pltree(completelink_clust,main="Ward method", cex=0.83,xlab="")
-  completelink_clust_labels<-cutree(completelink_clust,n_cluster)
-  sil_completelink <- silhouette(completelink_clust_labels, dist(reduced_data))
-  sil_scores_completelink <- c(sil_scores_completelink, mean(sil_completelink[, 3]))
-  plot(sil_completelink)
-  fviz_silhouette(sil_completelink, palette = "jco", ggtheme = theme_classic())
+  pltree(wardmethod_clust,main="Ward method", cex=0.83,xlab="")
+  wardmethod_clust_labels<-cutree(wardmethod_clust,n_cluster)
+  sil_wardmethod <- silhouette(wardmethod_clust_labels, dist(reduced_data))
+  sil_scores_wardmethod <- c(sil_scores_wardmethod, mean(sil_wardmethod[, 3]))
+  plot(sil_wardmethod)
+  fviz_silhouette(sil_wardmethod, palette = "jco", ggtheme = theme_classic())
   
   # Scatter plot of first 2 principal components with original labels
   if (n_cluster == 3) {
@@ -95,9 +105,9 @@ for (n_cluster in n_clusters) {
        main = paste("GMM with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
   legend("topright", legend = unique(gmm_clust_labels), col = unique(gmm_clust_labels), pch = 19)
   
-  plot(reduced_data[, 1], reduced_data[, 2], col = completelink_clust_labels, pch = 19,
+  plot(reduced_data[, 1], reduced_data[, 2], col = wardmethod_clust_labels, pch = 19,
        main = paste("Ward method hierarchical clustering with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
-  legend("topright", legend = unique(completelink_clust_labels), col = unique(completelink_clust_labels), pch = 19)
+  legend("topright", legend = unique(wardmethod_clust_labels), col = unique(wardmethod_clust_labels), pch = 19)
   
   #Compute adjusted rand score between prediction with k=3 and original labels
   if (n_cluster==3) {
@@ -107,7 +117,7 @@ for (n_cluster in n_clusters) {
     print(paste("Adjusted Rand Index for K-medoids: ", ari))
     ari <- adjustedRandIndex(gmm_clust_labels, data_classes)
     print(paste("Adjusted Rand Index for GMM: ", ari))
-    ari <- adjustedRandIndex(completelink_clust_labels, data_classes)
+    ari <- adjustedRandIndex(wardmethod_clust_labels, data_classes)
     print(paste("Adjusted Rand Index for Ward Method: ", ari))
   }
 }
@@ -124,7 +134,7 @@ x <- c(2, 3, 4, 5)
 plot(x, sil_scores_kmeans, type = "l", col = "red", xlab = "number of clusters", ylab = "avg silhouette score", ylim = c(0,0.25))
 lines(x, sil_scores_kmedoids, type = "l", col = "blue")
 lines(x, sil_scores_gmm, type = "l", col = "green")
-lines(x, sil_scores_completelink, type = "l", col = "purple")
+lines(x, sil_scores_wardmethod, type = "l", col = "purple")
 # Add a legend
 legend("bottomright", legend = c("K-means", "K-medoids", "GMM", "Ward Method"), col = c("red", "blue", "green", "purple"), lty = 1, cex = 0.8)
 
