@@ -7,6 +7,8 @@ from sklearn.metrics import silhouette_score, silhouette_samples
 from sklearn.mixture import GaussianMixture
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 
+np.random.seed(2)
+
 # load cancerdata
 # 2999 dimensions
 # 82 observations
@@ -22,7 +24,7 @@ data_m = data.loc[:, data.columns != '0'].to_numpy()
 # TODO: Understanding Hierarchical clustering
 # TODO: 4th cluster method
 # 1: Kmeans, 2: GMM, 3: Hierarchical clustering (bottom up, agglomerative)
-cluster_method = 3
+cluster_method = 4
 n_clusters = [2,3,4,5]
 princip_components = 10
 silhouette = True
@@ -41,34 +43,37 @@ for n_cluster in n_clusters:
         cluster_labels = clusterer.predict(reduced_data)
 
     elif cluster_method == 3:
-        Z = linkage(reduced_data, "average")
+        Z = linkage(reduced_data, "complete") #performs complete linkage
         cluster_labels = fcluster(Z, t=n_cluster, criterion="maxclust")
         
     elif cluster_method == 4:
-        pass
+        Z = linkage(reduced_data, method='ward') # performs ward linkage
+        cluster_labels = fcluster(Z, t=n_cluster, criterion="maxclust")
           
     fig, axes = plt.subplots(nrows=1, ncols=2)
-    
+
     axes[0].scatter(reduced_data[:,0], reduced_data[:,1], c=data['0'])
     axes[0].set_title("Original data")
     axes[1].set_title(f"Cluster method {cluster_method}, with {princip_components} pcs and {n_cluster} clusters")
     axes[1].scatter(reduced_data[:,0], reduced_data[:,1], c=cluster_labels)
     plt.show()
-    
+
     if silhouette:
         fig, axes = plt.subplots(nrows=1, ncols=1)
         # visualize silhouette score
         # The silhouette coefficient can range from -1, 1
         axes.set_xlim([-0.5, 1])
         silhouette_avg = silhouette_score(reduced_data, cluster_labels)
-        
+
         mean_silhouette_scores.append(silhouette_avg)
         print("For n_clusters =", n_cluster, "The average silhouette_score is :", silhouette_avg,)
         # Compute the silhouette scores for each sample
         sample_silhouette_values = silhouette_samples(reduced_data, cluster_labels)
-        
+
         y_lower = 5
         for i in range(n_cluster):
+            if cluster_method == 3 or cluster_method == 4:
+                i = i+1
             # Aggregate silhouette scores for samples belonging to cluster i and sort them
             ith_cluster_silhouette_values = sample_silhouette_values[cluster_labels == i]
             ith_cluster_silhouette_values.sort()
@@ -101,22 +106,22 @@ for n_cluster in n_clusters:
         x_min, x_max = reduced_data[:, 0].min() - 1, reduced_data[:, 0].max() + 1
         y_min, y_max = reduced_data[:, 1].min() - 1, reduced_data[:, 1].max() + 1
         xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
-        
+
         # Obtain labels for each point in mesh. Use last trained model.
-        Z = clusterer.predict(np.c_[xx.ravel(), yy.ravel()])
-        
+        Z = clusterer.predict(np.c_[xx.ravel(), yy.ravel()]) #DOESNT WORK FOR CASE 3
+
         # Put the result into a color plot
         Z = Z.reshape(xx.shape)
-        
+
         # plot decision boundaries
         axes.imshow(Z, interpolation="nearest", extent=(xx.min(), xx.max(), yy.min(), yy.max()), aspect="auto", origin="lower", cmap="viridis", alpha=0.2)
-        
+
         # mark centroids of kmeans
         if cluster_method == 1:
             # Plot the centroids as a white X
             centroids = clusterer.cluster_centers_
             axes.scatter(centroids[:, 0], centroids[:, 1], marker="x", s=169, color="b", zorder=10, alpha=0.5)
-        
+
         axes.set_title("Decision boundary after clustering with original data")
         plt.show()
     if cluster_method == 3:
@@ -133,3 +138,8 @@ ax.set_xlabel("Number of clusters")
 ax.set_ylabel("Average silhouette score")
 
 plt.show()
+
+
+
+
+#CHECK clusterer FOR CASE 3 AND 4 (DOESN'T WORK WITH 2 PRINCIPAL COMPONENTS)
