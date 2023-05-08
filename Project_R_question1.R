@@ -9,6 +9,9 @@ library(mclust)
 library(stats)
 library(cluster)
 library(pheatmap)
+#BiocManager::install("ConsensusClusterPlus")
+#browseVignettes("ConsensusClusterPlus")
+library(ConsensusClusterPlus)
 
 set.seed(2)
 
@@ -126,18 +129,16 @@ lines(x, sil_scores_completelink, type = "l", col = "purple")
 legend("bottomright", legend = c("K-means", "K-medoids", "GMM", "Ward Method"), col = c("red", "blue", "green", "purple"), lty = 1, cex = 0.8)
 
 
-BiocManager::install("ConsensusClusterPlus")
-browseVignettes("ConsensusClusterPlus")
-library(ConsensusClusterPlus)
-# this can be a bit slot depending on the number of features and observations!
-ii<-sample(seq(1,2887),1000)
-guse<-vv[1:2000]
-options(warn=-1)
-cc<-ConsensusClusterPlus(as.matrix(reduced_data),maxK=5,reps=100,pItem=.6,pFeature=.6,
+
+dist_matrix <- dist(reduced_data, method = "euclidean")
+cc_km <- ConsensusClusterPlus(t(reduced_data),maxK=5,reps=100,pItem=0.8,pFeature=1,
                          clusterAlg="km")
-options(warn=0)
 
+cc_pam <- ConsensusClusterPlus(dist_matrix,maxK=5,reps=100,pItem=0.8,pFeature=1,
+                           clusterAlg="pam")
 
+cc_hc <- ConsensusClusterPlus(dist_matrix,maxK=5,reps=100,pItem=0.8,pFeature=1,
+                           clusterAlg="hc")
 
 
     
