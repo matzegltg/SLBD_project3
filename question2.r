@@ -12,6 +12,8 @@ library(pheatmap)
 #BiocManager::install("ConsensusClusterPlus")
 #browseVignettes("ConsensusClusterPlus")
 library(ConsensusClusterPlus)
+library(irlba)
+
 
 load("TCGAData.RData")
 ls() #returns a list of all the objects you just loaded (and anything else in your environment)
@@ -46,8 +48,6 @@ remove_observations <- function(X, y, num_rm, class_to_remove_from) {
 }
 
 
-
-
 #Clustering
 cluster_method <- 2
 n_clusters <- c(5,6,7)
@@ -59,26 +59,31 @@ sil_scores_kmedoids <- c(0,0,0)
 sil_scores_gmm <- c(0,0,0)
 sil_scores_wardmethod <- c(0,0,0)
 
+pca_result <- prcomp_irlba(X, n = princip_components)
+reduced_data <- pca_result$x[,1:princip_components]
+
+
 # compute principal components
-pca <- prcomp(X, center = TRUE, scale = FALSE)
+#pca <- prcomp(data_features, center = TRUE, scale = FALSE)
 
 # extract proportion of variance explained by each principal component
-prop_var <- pca$sdev^2/sum(pca$sdev^2)
+prop_var <- pca_result$sdev^2/sum(pca_result$sdev^2)
 
 # plot scree plot
 plot(prop_var, type = "b", xlab = "Number of Principal Components", ylab = "Proportion of Variance Explained")
 
-reduced_data <- prcomp(X, center = TRUE, scale = FALSE)$x[, 1:princip_components]
+#reduced_data <- pca$x[, 1:princip_components]
 
-nb_tests = 25
+nb_tests = 10
 
-for (count in nb_tests) {
+for (count in 1:nb_tests) {
+  print(count)
   sil_scores_kmeans_ <- c()
   sil_scores_kmedoids_ <- c()
   sil_scores_gmm_ <- c()
   sil_scores_wardmethod_ <- c()
   modified_data <- add_pseudo_obs(reduced_data, y, 28, "GBM")
-  modified_data <- add_pseudo_obs(modified_data$X_pseudo, modified_data$y, 143, "U")
+  modified_data <- add_pseudo_obs(modified_data$X_pseudo, modified_data$y_pseudo, 143, "U")
   modified_data_rm <- remove_observations(modified_data$X_pseudo, modified_data$y_pseudo, 1015,"BC" ) 
   modified_data_rm <- remove_observations(modified_data_rm$X_rm, modified_data_rm$y_rm, 406, "KI")
   modified_data_rm <- remove_observations(modified_data_rm$X_rm, modified_data_rm$y_rm, 66, "OV")
@@ -94,9 +99,7 @@ for (count in nb_tests) {
     kmeans_clust_labels <- kmeans_clust$cluster
     sil_kmeans <- silhouette(kmeans_clust_labels, dist(reduced_data))
     sil_scores_kmeans_ <- c(sil_scores_kmeans_, mean(sil_kmeans[, 3]))
-    print(sil_scores_kmeans_)
-    sil_scores_kmeans <- sil_scores_kmeans + sil_scores_kmeans_
-    print(sil_scores_kmeans)
+    #sil_scores_kmeans <- sil_scores_kmeans + sil_scores_kmeans_
     fviz_silhouette(sil_kmeans, palette = "jco", ggtheme = theme_classic())
     #plot(sil_kmeans)
   
@@ -106,7 +109,7 @@ for (count in nb_tests) {
     #plot(kmedoids_clust$silinfo$widths[,3],col=kmedoids_clust$silinfo$widths[,1],type="h")
     sil_kmedoids <- silhouette(kmedoids_clust_labels, dist(reduced_data))
     sil_scores_kmedoids_ <- c(sil_scores_kmedoids_, mean(sil_kmedoids[, 3]))
-    sil_scores_kmedoids <- sil_scores_kmedoids + sil_scores_kmedoids_
+    #sil_scores_kmedoids <- sil_scores_kmedoids + sil_scores_kmedoids_
     fviz_silhouette(sil_kmedoids, palette = "jco", ggtheme = theme_classic())
     #plot(sil_kmedoids)
   
@@ -115,18 +118,18 @@ for (count in nb_tests) {
     gmm_clust_labels <- gmm_clust$classification
     sil_gmm <- silhouette(gmm_clust_labels, dist(reduced_data))
     sil_scores_gmm_ <- c(sil_scores_gmm_, mean(sil_gmm[, 3]))
-    sil_scores_gmm <- sil_scores_gmm + sil_scores_gmm_
+    #sil_scores_gmm <- sil_scores_gmm + sil_scores_gmm_
     fviz_silhouette(sil_gmm, palette = "jco", ggtheme = theme_classic())
     #plot(sil_gmm)
   
-    #Ward method hierarchical clustering
+    # #Ward method hierarchical clustering
     wardmethod_clust<-agnes(reduced_data,  metric = "euclidean",
                             stand = FALSE, method = "ward", keep.data = FALSE)
-    pltree(wardmethod_clust,main="Ward method", cex=0.83,xlab="")
+    #pltree(wardmethod_clust,main="Ward method", cex=0.83,xlab="")
     wardmethod_clust_labels<-cutree(wardmethod_clust,n_cluster)
     sil_wardmethod <- silhouette(wardmethod_clust_labels, dist(reduced_data))
     sil_scores_wardmethod_ <- c(sil_scores_wardmethod_, mean(sil_wardmethod[, 3]))
-    sil_scores_wardmethod <- sil_scores_wardmethod + sil_scores_wardmethod_
+    #sil_scores_wardmethod <- sil_scores_wardmethod + sil_scores_wardmethod_
     fviz_silhouette(sil_wardmethod, palette = "jco", ggtheme = theme_classic())
     #plot(sil_wardmethod)
   
@@ -167,31 +170,33 @@ for (count in nb_tests) {
       print(paste("Adjusted Rand Index for Ward Method: ", ari))
     }
   }
-
+  sil_scores_kmeans <- sil_scores_kmeans + sil_scores_kmeans_
+  sil_scores_kmedoids <- sil_scores_kmedoids + sil_scores_kmedoids_
+  sil_scores_gmm <- sil_scores_gmm + sil_scores_gmm_
+  sil_scores_wardmethod <- sil_scores_wardmethod + sil_scores_wardmethod_
+  
 }
 
-print(sil_scores_kmeans)
 
 sil_scores_kmeans <- sil_scores_kmeans/nb_tests
 sil_scores_kmedoids <- sil_scores_kmedoids/nb_tests
 sil_scores_gmm <- sil_scores_gmm/nb_tests
 sil_scores_wardmethod <- sil_scores_wardmethod/nb_tests
 
-#Heatmaps
-pheatmap(reduced_data, clustering_method = "complete", cluster_cols = TRUE, cluster_rows = TRUE)
-pheatmap(reduced_data, clustering_method = "average", cluster_cols = TRUE, cluster_rows = TRUE)
-pheatmap(reduced_data, clustering_method = "ward", cluster_cols = TRUE, cluster_rows = TRUE)
-
-
 # Create a new plot with the average silhouette score for each model
 x <- c(5, 6, 7)
-plot(x, sil_scores_kmeans, type = "l", col = "red", xlab = "number of clusters", ylab = "avg silhouette score", ylim = c(0,0.70))
+plot(x, sil_scores_kmeans, type = "l", col = "red", xlab = "number of clusters", ylab = "avg silhouette score", ylim = c(0.3,0.45))
 lines(x, sil_scores_kmedoids, type = "l", col = "blue")
 lines(x, sil_scores_gmm, type = "l", col = "green")
 lines(x, sil_scores_wardmethod, type = "l", col = "purple")
 # Add a legend
 legend("bottomright", legend = c("K-means", "K-medoids", "GMM", "Ward Method"), col = c("red", "blue", "green", "purple"), lty = 1, cex = 0.8)
 
+
+#Heatmaps
+pheatmap(reduced_data, clustering_method = "complete", cluster_cols = TRUE, cluster_rows = TRUE)
+pheatmap(reduced_data, clustering_method = "average", cluster_cols = TRUE, cluster_rows = TRUE)
+pheatmap(reduced_data, clustering_method = "ward", cluster_cols = TRUE, cluster_rows = TRUE)
 
 
 dist_matrix <- dist(reduced_data, method = "euclidean")
