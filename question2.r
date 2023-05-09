@@ -60,7 +60,7 @@ sil_scores_gmm <- c(0,0,0)
 sil_scores_wardmethod <- c(0,0,0)
 
 pca_result <- prcomp_irlba(X, n = princip_components)
-reduced_data <- pca_result$x[,1:princip_components]
+reduced_data_X <- pca_result$x[,1:princip_components]
 
 
 # compute principal components
@@ -72,8 +72,6 @@ prop_var <- pca_result$sdev^2/sum(pca_result$sdev^2)
 # plot scree plot
 plot(prop_var, type = "b", xlab = "Number of Principal Components", ylab = "Proportion of Variance Explained")
 
-#reduced_data <- pca$x[, 1:princip_components]
-
 nb_tests = 1
 
 for (count in 1:nb_tests) {
@@ -82,17 +80,21 @@ for (count in 1:nb_tests) {
   sil_scores_kmedoids_ <- c()
   sil_scores_gmm_ <- c()
   sil_scores_wardmethod_ <- c()
-  modified_data <- add_pseudo_obs(reduced_data, y, 28, "GBM")
+  modified_data <- add_pseudo_obs(reduced_data_X, y, 28, "GBM")
   modified_data <- add_pseudo_obs(modified_data$X_pseudo, modified_data$y_pseudo, 143, "U")
-  modified_data_rm <- remove_observations(modified_data$X_pseudo, modified_data$y_pseudo, 1015,"BC" ) 
+  modified_data_rm <- remove_observations(modified_data$X_pseudo, modified_data$y_pseudo, 1015,"BC" )
   modified_data_rm <- remove_observations(modified_data_rm$X_rm, modified_data_rm$y_rm, 406, "KI")
   modified_data_rm <- remove_observations(modified_data_rm$X_rm, modified_data_rm$y_rm, 66, "OV")
   modified_data_rm <- remove_observations(modified_data_rm$X_rm, modified_data_rm$y_rm, 371, "LU")
   data_classes <- modified_data_rm$y_rm
-  data_features <- modified_data_rm$X_rm
+  reduced_data <- modified_data_rm$X_rm
+  # data_classes <- reduced_data
+  # data_features <- y
   
   
   for (n_cluster in n_clusters) {
+    
+    n_cluster = 7
     
     #K means
     kmeans_clust <- kmeans(reduced_data, n_cluster)
@@ -121,37 +123,37 @@ for (count in 1:nb_tests) {
     # #Ward method hierarchical clustering
     wardmethod_clust<-agnes(reduced_data,  metric = "euclidean",
                             stand = FALSE, method = "ward", keep.data = FALSE)
-    pltree(wardmethod_clust,main="Ward method", cex=0.83,xlab="")
+    #pltree(wardmethod_clust,main="Ward method", cex=0.83,xlab="")
     wardmethod_clust_labels<-cutree(wardmethod_clust,n_cluster)
     sil_wardmethod <- silhouette(wardmethod_clust_labels, dist(reduced_data))
     sil_scores_wardmethod_ <- c(sil_scores_wardmethod_, mean(sil_wardmethod[, 3]))
     fviz_silhouette(sil_wardmethod, palette = "jco", ggtheme = theme_classic())
     #plot(sil_wardmethod)
   
-    # # Scatter plot of first 2 principal components with original labels
-    if (n_cluster == 6) {
-      data_classes_plot <- as.numeric(factor(data_classes, levels = c("BC", "GBM", "KI", "OV", "U", "LU")), labels = c(0, 1, 2, 3, 4, 5))
-      plot(reduced_data[, 1], reduced_data[, 2], col = data_classes_plot, pch = 19,
-           main = paste("Original labels"), xlab = "PC1", ylab = "PC2")
-      legend("bottomright", legend = unique(kmeans_clust_labels), col = unique(kmeans_clust_labels), pch = 19)
-    }
+    # # # Scatter plot of first 2 principal components with original labels
+    # if (n_cluster == 6) {
+    #   data_classes_plot <- as.numeric(factor(data_classes, levels = c("BC", "GBM", "KI", "OV", "U", "LU")), labels = c(0, 1, 2, 3, 4, 5))
+    #   plot(reduced_data[, 1], reduced_data[, 2], col = data_classes_plot, pch = 19,
+    #        main = paste("Original labels"), xlab = "PC1", ylab = "PC2")
+    #   legend("bottomright", legend = unique(kmeans_clust_labels), col = unique(kmeans_clust_labels), pch = 19)
+    # }
 
-    # Scatter plot of first 2 principal components with cluster labels
-    plot(reduced_data[, 1], reduced_data[, 2], col = kmeans_clust_labels, pch = 19,
-         main = paste("K-means with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
-    legend("topright", legend = unique(kmeans_clust_labels), col = unique(kmeans_clust_labels), pch = 19)
-
-    plot(reduced_data[, 1], reduced_data[, 2], col = kmedoids_clust_labels, pch = 19,
-         main = paste("K-medoids with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
-    legend("topright", legend = unique(kmedoids_clust_labels), col = unique(kmedoids_clust_labels), pch = 19)
-
-    plot(reduced_data[, 1], reduced_data[, 2], col = gmm_clust_labels, pch = 19,
-         main = paste("GMM with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
-    legend("topright", legend = unique(gmm_clust_labels), col = unique(gmm_clust_labels), pch = 19)
-
-    plot(reduced_data[, 1], reduced_data[, 2], col = wardmethod_clust_labels, pch = 19,
-         main = paste("Ward method hierarchical clustering with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
-    legend("topright", legend = unique(wardmethod_clust_labels), col = unique(wardmethod_clust_labels), pch = 19)
+    # # Scatter plot of first 2 principal components with cluster labels
+    # plot(reduced_data[, 1], reduced_data[, 2], col = kmeans_clust_labels, pch = 19,
+    #      main = paste("K-means with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
+    # legend("topright", legend = unique(kmeans_clust_labels), col = unique(kmeans_clust_labels), pch = 19)
+    # 
+    # plot(reduced_data[, 1], reduced_data[, 2], col = kmedoids_clust_labels, pch = 19,
+    #      main = paste("K-medoids with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
+    # legend("topright", legend = unique(kmedoids_clust_labels), col = unique(kmedoids_clust_labels), pch = 19)
+    # 
+    # plot(reduced_data[, 1], reduced_data[, 2], col = gmm_clust_labels, pch = 19,
+    #      main = paste("GMM with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
+    # legend("topright", legend = unique(gmm_clust_labels), col = unique(gmm_clust_labels), pch = 19)
+    # 
+    # plot(reduced_data[, 1], reduced_data[, 2], col = wardmethod_clust_labels, pch = 19,
+    #      main = paste("Ward method hierarchical clustering with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
+    # legend("topright", legend = unique(wardmethod_clust_labels), col = unique(wardmethod_clust_labels), pch = 19)
 
     #Compute adjusted rand score between prediction with k=3 and original labels
     # if (n_cluster==6) {
