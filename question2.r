@@ -74,7 +74,7 @@ plot(prop_var, type = "b", xlab = "Number of Principal Components", ylab = "Prop
 
 #reduced_data <- pca$x[, 1:princip_components]
 
-nb_tests = 10
+nb_tests = 1
 
 for (count in 1:nb_tests) {
   print(count)
@@ -99,17 +99,14 @@ for (count in 1:nb_tests) {
     kmeans_clust_labels <- kmeans_clust$cluster
     sil_kmeans <- silhouette(kmeans_clust_labels, dist(reduced_data))
     sil_scores_kmeans_ <- c(sil_scores_kmeans_, mean(sil_kmeans[, 3]))
-    #sil_scores_kmeans <- sil_scores_kmeans + sil_scores_kmeans_
     fviz_silhouette(sil_kmeans, palette = "jco", ggtheme = theme_classic())
     #plot(sil_kmeans)
   
     #K medoids
     kmedoids_clust <- pam(reduced_data, n_cluster)
     kmedoids_clust_labels <- kmedoids_clust$cluster
-    #plot(kmedoids_clust$silinfo$widths[,3],col=kmedoids_clust$silinfo$widths[,1],type="h")
     sil_kmedoids <- silhouette(kmedoids_clust_labels, dist(reduced_data))
     sil_scores_kmedoids_ <- c(sil_scores_kmedoids_, mean(sil_kmedoids[, 3]))
-    #sil_scores_kmedoids <- sil_scores_kmedoids + sil_scores_kmedoids_
     fviz_silhouette(sil_kmedoids, palette = "jco", ggtheme = theme_classic())
     #plot(sil_kmedoids)
   
@@ -118,57 +115,55 @@ for (count in 1:nb_tests) {
     gmm_clust_labels <- gmm_clust$classification
     sil_gmm <- silhouette(gmm_clust_labels, dist(reduced_data))
     sil_scores_gmm_ <- c(sil_scores_gmm_, mean(sil_gmm[, 3]))
-    #sil_scores_gmm <- sil_scores_gmm + sil_scores_gmm_
     fviz_silhouette(sil_gmm, palette = "jco", ggtheme = theme_classic())
     #plot(sil_gmm)
   
     # #Ward method hierarchical clustering
     wardmethod_clust<-agnes(reduced_data,  metric = "euclidean",
                             stand = FALSE, method = "ward", keep.data = FALSE)
-    #pltree(wardmethod_clust,main="Ward method", cex=0.83,xlab="")
+    pltree(wardmethod_clust,main="Ward method", cex=0.83,xlab="")
     wardmethod_clust_labels<-cutree(wardmethod_clust,n_cluster)
     sil_wardmethod <- silhouette(wardmethod_clust_labels, dist(reduced_data))
     sil_scores_wardmethod_ <- c(sil_scores_wardmethod_, mean(sil_wardmethod[, 3]))
-    #sil_scores_wardmethod <- sil_scores_wardmethod + sil_scores_wardmethod_
     fviz_silhouette(sil_wardmethod, palette = "jco", ggtheme = theme_classic())
     #plot(sil_wardmethod)
   
     # # Scatter plot of first 2 principal components with original labels
-    # if (n_cluster == 3) {
-    #   data_classes_plot <- data_classes + 1
-    #   plot(reduced_data[, 1], reduced_data[, 2], col = data_classes_plot, pch = 19,
-    #        main = paste("Original labels"), xlab = "PC1", ylab = "PC2")
-    #   legend("topright", legend = unique(kmeans_clust_labels), col = unique(kmeans_clust_labels), pch = 19)
-    # }
-    # 
-    # # Scatter plot of first 2 principal components with cluster labels
-    # plot(reduced_data[, 1], reduced_data[, 2], col = kmeans_clust_labels, pch = 19,
-    #      main = paste("K-means with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
-    # legend("topright", legend = unique(kmeans_clust_labels), col = unique(kmeans_clust_labels), pch = 19)
-    # 
-    # plot(reduced_data[, 1], reduced_data[, 2], col = kmedoids_clust_labels, pch = 19,
-    #      main = paste("K-medoids with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
-    # legend("topright", legend = unique(kmedoids_clust_labels), col = unique(kmedoids_clust_labels), pch = 19)
-    # 
-    # plot(reduced_data[, 1], reduced_data[, 2], col = gmm_clust_labels, pch = 19,
-    #      main = paste("GMM with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
-    # legend("topright", legend = unique(gmm_clust_labels), col = unique(gmm_clust_labels), pch = 19)
-    # 
-    # plot(reduced_data[, 1], reduced_data[, 2], col = wardmethod_clust_labels, pch = 19,
-    #      main = paste("Ward method hierarchical clustering with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
-    # legend("topright", legend = unique(wardmethod_clust_labels), col = unique(wardmethod_clust_labels), pch = 19)
-    # 
-    #Compute adjusted rand score between prediction with k=3 and original labels
-    if (n_cluster==3) {
-      ari <- adjustedRandIndex(kmeans_clust_labels, data_classes)
-      print(paste("Adjusted Rand Index for K-means: ", ari))
-      ari <- adjustedRandIndex(kmedoids_clust_labels, data_classes)
-      print(paste("Adjusted Rand Index for K-medoids: ", ari))
-      ari <- adjustedRandIndex(gmm_clust_labels, data_classes)
-      print(paste("Adjusted Rand Index for GMM: ", ari))
-      ari <- adjustedRandIndex(wardmethod_clust_labels, data_classes)
-      print(paste("Adjusted Rand Index for Ward Method: ", ari))
+    if (n_cluster == 6) {
+      data_classes_plot <- as.numeric(factor(data_classes, levels = c("BC", "GBM", "KI", "OV", "U", "LU")), labels = c(0, 1, 2, 3, 4, 5))
+      plot(reduced_data[, 1], reduced_data[, 2], col = data_classes_plot, pch = 19,
+           main = paste("Original labels"), xlab = "PC1", ylab = "PC2")
+      legend("bottomright", legend = unique(kmeans_clust_labels), col = unique(kmeans_clust_labels), pch = 19)
     }
+
+    # Scatter plot of first 2 principal components with cluster labels
+    plot(reduced_data[, 1], reduced_data[, 2], col = kmeans_clust_labels, pch = 19,
+         main = paste("K-means with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
+    legend("topright", legend = unique(kmeans_clust_labels), col = unique(kmeans_clust_labels), pch = 19)
+
+    plot(reduced_data[, 1], reduced_data[, 2], col = kmedoids_clust_labels, pch = 19,
+         main = paste("K-medoids with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
+    legend("topright", legend = unique(kmedoids_clust_labels), col = unique(kmedoids_clust_labels), pch = 19)
+
+    plot(reduced_data[, 1], reduced_data[, 2], col = gmm_clust_labels, pch = 19,
+         main = paste("GMM with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
+    legend("topright", legend = unique(gmm_clust_labels), col = unique(gmm_clust_labels), pch = 19)
+
+    plot(reduced_data[, 1], reduced_data[, 2], col = wardmethod_clust_labels, pch = 19,
+         main = paste("Ward method hierarchical clustering with", n_cluster, "clusters"), xlab = "PC1", ylab = "PC2")
+    legend("topright", legend = unique(wardmethod_clust_labels), col = unique(wardmethod_clust_labels), pch = 19)
+
+    #Compute adjusted rand score between prediction with k=3 and original labels
+    # if (n_cluster==6) {
+    #   ari <- adjustedRandIndex(kmeans_clust_labels, data_classes)
+    #   print(paste("Adjusted Rand Index for K-means: ", ari))
+    #   ari <- adjustedRandIndex(kmedoids_clust_labels, data_classes)
+    #   print(paste("Adjusted Rand Index for K-medoids: ", ari))
+    #   ari <- adjustedRandIndex(gmm_clust_labels, data_classes)
+    #   print(paste("Adjusted Rand Index for GMM: ", ari))
+    #   ari <- adjustedRandIndex(wardmethod_clust_labels, data_classes)
+    #   print(paste("Adjusted Rand Index for Ward Method: ", ari))
+    # }
   }
   sil_scores_kmeans <- sil_scores_kmeans + sil_scores_kmeans_
   sil_scores_kmedoids <- sil_scores_kmedoids + sil_scores_kmedoids_
